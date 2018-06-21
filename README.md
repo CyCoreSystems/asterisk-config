@@ -135,12 +135,12 @@ this directory will be copied into `/etc/asterisk/` on the live Asterisk Pod.
 In this example, we will use the local directory named
 `/home/user/asterisk/config`.
 
-Inside your directory, we create two files: `pjsip_custom.conf` and
-`extensions_custom.conf`.
+Inside your directory, we create two files: `pjsip.d/my_carrier.conf` and
+`extensions.d/dialin.conf`.
 
-`pjsip_custom.conf`:
+`pjsip.d/my_carrier.conf`:
 
-```asterisk
+```ini
 [pstn]
 type=endpoint
 transport=k8s-external-ipv4-external-media
@@ -167,9 +167,9 @@ permit=12.34.56.78/255.255.255.255
 permit=87.65.43.21/255.255.255.255
 ```
 
-`extensions_custom.conf`:
+`extensions.d/dialin.conf`:
 
-```asterisk
+```ini
 [dialin]
 exten = echo,1,Verbose(1, "Running Echo")
  same = n,Answer()
@@ -183,7 +183,7 @@ exten = 15555555555,1,Verbose(1, "Received call to +1 555 555.5555")
 Now zip up these configuration files to a new `asterisk-config.zip`:
 
 ```sh
-zip asterisk-config.zip pjsip_custom.conf extensions_custom.conf 
+zip asterisk-config.zip *
 ```
 
 Then store the `asterisk-config.zip` file to kubernetes as a Secret named
@@ -369,7 +369,7 @@ set.
 Using this is then easy.  For example, to create a PJSIP endpoint from the set
 of proxy servers running as the "kamailio" service:
 
-`pjsip_custom.conf`:
+`pjsip.d/proxies.conf`:
 
 ```ini
 [proxies]
