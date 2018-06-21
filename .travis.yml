@@ -1,0 +1,19 @@
+language: go
+go:
+   - "1.10"
+install:
+   - go get -u github.com/golang/dep/cmd/dep/...
+   - go get -u github.com/alecthomas/gometalinter/...
+   - go get -u github.com/goreleaser/goreleaser
+   - gometalinter --install
+script: bash check.sh
+services:
+   - docker
+deploy:
+   - provider: script
+     skip_cleanup: true
+     script: bash release.sh
+     on:
+        tags: true
+        condition: $TRAVIS_OS_NAME = linux
+

@@ -1,0 +1,24 @@
+[k8s-internal-ipv4-internal-media]
+type=transport
+protocol=udp
+bind=0.0.0.0
+local_net={{.Network "privateIPv4"}}
+external_media_address={{.Network "privateIPv4"}}
+external_signaling_address={{.Network "privateIPv4"}}
+
+[k8s-internal-ipv4-external-media]
+type=transport
+protocol=udp
+bind=0.0.0.0
+local_net={{.Network "privateIPv4"}}
+external_media_address={{.Network "publicIPv4"}}
+external_signaling_address={{.Network "privateIPv4"}}
+
+[k8s-external-ipv4-external-media]
+type=transport
+protocol=udp
+bind=0.0.0.0
+local_net={{.Network "privateIPv4"}}
+external_media_address={{.Network "publicIPv4"}}
+external_signaling_address={{.Network "publicIPv4"}}
+
