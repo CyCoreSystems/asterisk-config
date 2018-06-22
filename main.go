@@ -17,6 +17,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+const amiUsername = "k8s-asterisk-config"
+
 func main() {
 
 	renderChan := make(chan error, 1)
@@ -87,7 +89,7 @@ func main() {
 			break
 		}
 
-		if err := reload(modules); err != nil {
+		if err := reload(amiUsername, e.AMISecret, modules); err != nil {
 			log.Println("failed to reload asterisk modules:", err.Error())
 			break
 		}
@@ -170,7 +172,7 @@ func render(e *template.Engine, customRoot string, exportRoot string) error {
 	return nil
 }
 
-func reload(modules string) error {
+func reload(username, secret, modules string) error {
 
 	list := strings.Split(modules, ",")
 
@@ -181,6 +183,10 @@ func reload(modules string) error {
 
 	ami.Run()
 	defer ami.Close()
+
+	if err = ami.Login(username, secret); err != nil {
+		return errors.Wrap(err, "failed to log into AMI")
+	}
 
 	for _, m := range list {
 		_, err = ami.Action("reload", gami.Params{
