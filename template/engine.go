@@ -267,10 +267,19 @@ func (e *Engine) Network(kind string) (string, error) {
 	case "privateipv4":
 		ip, err := e.disc.PrivateIPv4()
 		return ip.String(), err
+	case "privatev4":
+		ip, err := e.disc.PrivateIPv4()
+		return ip.String(), err
 	case "publicipv4":
 		ip, err := e.disc.PublicIPv4()
 		return ip.String(), err
+	case "publicv4":
+		ip, err := e.disc.PublicIPv4()
+		return ip.String(), err
 	case "publicipv6":
+		ip, err := e.disc.PublicIPv6()
+		return ip.String(), err
+	case "publicv6":
 		ip, err := e.disc.PublicIPv6()
 		return ip.String(), err
 	default:

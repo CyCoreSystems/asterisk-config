@@ -112,6 +112,17 @@ platform (such as AWS, GCP, Azure, DigitalOcean, etc) or are running a baremetal
 kubernetes cluster which you can control to supply the public and private IP
 addresses for the Asterisk Pod.
 
+It is strongly recommended to set the `CLOUD` environment variable to match your
+environment.  The valid options are:
+
+  - `aws` Amazon Web Services
+  - `azure` Microsoft Azure
+  - `digitalocean` or `do` Digital Ocean
+  - `gcp` Google Cloud Platform
+
+set to one of:
+
+
 Asterisk Config offers varying levels of configuration complexity, allowing you
 to easily just get your Asterisk system off the ground or to build a
 fully-templated configuration set.
@@ -416,9 +427,9 @@ The available data kinds correspond to the data available from
 [NetDiscover](https://github.com/CyCoreSystems/netdiscover):
 
   - "hostname"
-  - "privateIPv4"
-  - "publicIPv4"
-  - "publicIPv6"
+  - "privatev4"
+  - "publicv4"
+  - "publicv6"
 
 Note that PJSIP transports are already automatically set up, as described above.
 

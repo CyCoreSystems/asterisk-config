@@ -101,6 +101,8 @@ func getDiscoverer(cloud string) discover.Discoverer {
 		return discover.NewAzureDiscoverer()
 	case "digitalocean":
 		return discover.NewDigitalOceanDiscoverer()
+	case "do":
+		return discover.NewDigitalOceanDiscoverer()
 	case "gcp":
 		return discover.NewGCPDiscoverer()
 	default:
