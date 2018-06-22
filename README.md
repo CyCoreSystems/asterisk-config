@@ -194,7 +194,7 @@ exten = 15555555555,1,Verbose(1, "Received call to +1 555 555.5555")
 Now zip up these configuration files to a new `asterisk-config.zip`:
 
 ```sh
-zip asterisk-config.zip *
+zip -r asterisk-config.zip *
 ```
 
 Then store the `asterisk-config.zip` file to kubernetes as a Secret named

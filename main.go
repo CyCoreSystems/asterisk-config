@@ -21,7 +21,7 @@ func main() {
 
 	renderChan := make(chan error, 1)
 
-	cloud := "gcp"
+	cloud := ""
 	if os.Getenv("CLOUD") != "" {
 		cloud = os.Getenv("CLOUD")
 	}
@@ -47,6 +47,10 @@ func main() {
 	exportRoot := "/etc/asterisk"
 	if os.Getenv("EXPORT_DIR") != "" {
 		exportRoot = os.Getenv("EXPORT_DIR")
+	}
+	if err := os.MkdirAll(exportRoot, os.ModePerm); err != nil {
+		log.Println("failed to ensure destination directory", exportRoot, ":", err.Error())
+		os.Exit(1)
 	}
 
 	modules := "pjsip"
@@ -106,6 +110,7 @@ func getDiscoverer(cloud string) discover.Discoverer {
 	case "gcp":
 		return discover.NewGCPDiscoverer()
 	default:
+		log.Printf("WARNING: unhandled cloud %s\n", cloud)
 		return discover.NewDiscoverer()
 	}
 }
@@ -119,17 +124,20 @@ func render(e *template.Engine, customRoot string, exportRoot string) error {
 			return errors.Wrapf(err, "failed to access file %s", fn)
 		}
 
-		if info.IsDir() {
-			return nil
-		}
-		fileCount++
-
 		isTemplate := path.Ext(fn) == ".tmpl"
 
 		outFile := path.Join(exportRoot, strings.TrimPrefix(fn, customRoot))
 		if isTemplate {
 			outFile = strings.TrimSuffix(outFile, ".tmpl")
 		}
+
+		if info.IsDir() {
+			return os.MkdirAll(outFile, os.ModePerm)
+		}
+		if err := os.MkdirAll(path.Dir(outFile), os.ModePerm); err != nil {
+			return errors.Wrapf(err, "failed to create destination directory %s", path.Dir(outFile))
+		}
+		fileCount++
 
 		out, err := os.Create(outFile)
 		if err != nil {
@@ -234,7 +242,7 @@ func extractSource(source, customRoot string) (err error) {
 
 	}
 
-	return errors.New("not implemented")
+	return nil
 }
 
 func downloadSource(uri string) (string, error) {
