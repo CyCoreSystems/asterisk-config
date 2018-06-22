@@ -12,7 +12,6 @@ import (
 	"github.com/CyCoreSystems/netdiscover/discover"
 	"github.com/ericchiang/k8s"
 	"github.com/ericchiang/k8s/apis/core/v1"
-	"github.com/nats-io/nuid"
 )
 
 // KubeAPITimeout is the amount of time to wait for the kubernetes API to respond before failing
@@ -34,7 +33,7 @@ type Engine struct {
 
 	watchers map[string]*k8s.Watcher
 
-	amiSecret string
+	AMISecret string
 
 	mu sync.Mutex
 }
@@ -43,9 +42,9 @@ type Engine struct {
 // as an indicator to reload and as a return channel for errors.  If `nil` is
 // passed down the channel, a reload is requested.  If an error is passed down,
 // the Engine has died and must be restarted.
-func NewEngine(reloadChan chan error, disc discover.Discoverer) *Engine {
+func NewEngine(reloadChan chan error, disc discover.Discoverer, amiSecret string) *Engine {
 	return &Engine{
-		amiSecret: genSecret(),
+		AMISecret: amiSecret,
 		disc:      disc,
 		reload:    reloadChan,
 		watchers:  make(map[string]*k8s.Watcher),
@@ -290,8 +289,4 @@ func getNamespace(name string) (out string, err error) {
 
 func watcherName(names ...string) string {
 	return strings.Join(names, ".")
-}
-
-func genSecret() string {
-	return nuid.New().Next()
 }

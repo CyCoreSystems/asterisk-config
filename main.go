@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/CyCoreSystems/asterisk-config/template"
+	"github.com/CyCoreSystems/gami"
 	"github.com/CyCoreSystems/netdiscover/discover"
 	"github.com/pkg/errors"
 )
@@ -26,7 +27,7 @@ func main() {
 	}
 	disc := getDiscoverer(cloud)
 
-	e := template.NewEngine(renderChan, disc)
+	e := template.NewEngine(renderChan, disc, genSecret())
 
 	source := "/source/asterisk-config.zip"
 	if os.Getenv("SOURCE") != "" {
@@ -46,6 +47,11 @@ func main() {
 	exportRoot := "/etc/asterisk"
 	if os.Getenv("EXPORT_DIR") != "" {
 		exportRoot = os.Getenv("EXPORT_DIR")
+	}
+
+	modules := "pjsip"
+	if os.Getenv("RELOAD_MODULES") != "" {
+		modules = os.Getenv("RELOAD_MODULES")
 	}
 
 	// Export defaults
@@ -73,6 +79,11 @@ func main() {
 
 		if err := render(e, customRoot, exportRoot); err != nil {
 			log.Println("failed to render:", err.Error())
+			break
+		}
+
+		if err := reload(modules); err != nil {
+			log.Println("failed to reload asterisk modules:", err.Error())
 			break
 		}
 	}
@@ -145,6 +156,30 @@ func render(e *template.Engine, customRoot string, exportRoot string) error {
 		return errors.New("no files processed")
 	}
 
+	return nil
+}
+
+func reload(modules string) error {
+
+	list := strings.Split(modules, ",")
+
+	ami, err := gami.Dial("127.0.0.1:5038")
+	if err != nil {
+		return err
+	}
+
+	ami.Run()
+	defer ami.Close()
+
+	for _, m := range list {
+		_, err = ami.Action("reload", gami.Params{
+			"ActionID": genSecret(),
+			"Module":   m,
+		})
+		if err != nil {
+			return errors.Wrapf(err, "failed to execute module reload for module (%s):", m)
+		}
+	}
 	return nil
 }
 
