@@ -14,6 +14,11 @@ archive:
    name_template: "{{ .Binary }}.{{ .Os }}.{{ .Arch }}"
    files:
       - 'defaults/*'
+      - 'defaults/ari.d/*'
+      - 'defaults/extensions.d/*'
+      - 'defaults/manager.d/*'
+      - 'defaults/pjsip.d/*'
+      - 'defaults/voicemail.d/*'
 checksum:
   name_template: 'checksums.txt'
 snapshot:
@@ -33,3 +38,10 @@ dockers:
         - "v{{ .Major }}"
         - "v{{ .Major }}.{{ .Minor }}"
         - latest
+     extra_files:
+        - 'defaults/*'
+        - 'defaults/ari.d/*'
+        - 'defaults/extensions.d/*'
+        - 'defaults/manager.d/*'
+        - 'defaults/pjsip.d/*'
+        - 'defaults/voicemail.d/*'
