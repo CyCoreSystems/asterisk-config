@@ -10,7 +10,7 @@ builds:
         - amd64
 
 archive:
-   format: binary
+   format: tar.gz
    name_template: "{{ .Binary }}.{{ .Os }}.{{ .Arch }}"
    files:
       - 'defaults/*'
