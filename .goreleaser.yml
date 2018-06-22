@@ -39,9 +39,4 @@ dockers:
         - "v{{ .Major }}.{{ .Minor }}"
         - latest
      extra_files:
-        - 'defaults/*'
-        - 'defaults/ari.d/*'
-        - 'defaults/extensions.d/*'
-        - 'defaults/manager.d/*'
-        - 'defaults/pjsip.d/*'
-        - 'defaults/voicemail.d/*'
+        - 'defaults/'
