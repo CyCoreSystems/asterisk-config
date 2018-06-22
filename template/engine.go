@@ -81,6 +81,12 @@ func (e *Engine) failure(err error) {
 	}
 }
 
+// FirstRenderComplete should be called after the first render is completed.
+// This eliminates some extra kubernetes API checking for resource watching.
+func (e *Engine) FirstRenderComplete(ok bool) {
+	e.firstRenderCompleted = ok
+}
+
 // ConfigMap returns a kubernetes ConfigMap
 func (e *Engine) ConfigMap(name string, namespace string) (c *v1.ConfigMap, err error) {
 	c = new(v1.ConfigMap)

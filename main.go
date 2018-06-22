@@ -70,6 +70,7 @@ func main() {
 		log.Println("failed to render configuration:", err.Error())
 		os.Exit(1)
 	}
+	e.FirstRenderComplete(true)
 
 	for {
 		if err := <-renderChan; err != nil {
