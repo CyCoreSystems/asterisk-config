@@ -201,7 +201,7 @@ Then store the `asterisk-config.zip` file to kubernetes as a Secret named
 "asterisk-config":
 
 ```sh
-kubectl create secret asterisk-config --from-file=asterisk-config.zip
+kubectl create secret generic asterisk-config --from-file=asterisk-config.zip
 ```
 
 **NOTE**:  By default, Asterisk-Config looks for the Secret named
