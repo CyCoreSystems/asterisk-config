@@ -49,11 +49,11 @@ configurations for AMI (so that it may call a reload when necessary) and PJSIP
 The following default PJSIP transports will be specified:  
 
   - `k8s-internal-ipv4-internal-media` (internal SIP/signaling advertisement,
-    internal RTP/media advertisement)
+    internal RTP/media advertisement, port 5080/UDP)
   - `k8s-internal-ipv4-external-media` (internal SIP/signaling advertisement,
-    external RTP/media advertisement)
+    external RTP/media advertisement, port 5070/UDP)
   - `k8s-external-ipv4-external-media` (external SIP/signaling advertisement,
-    external RTP/media advertisement)
+    external RTP/media advertisement, port 5060/UDP)
 
 In most cloud-based kubernetes setups, the Pod will be assigned an internal IP
 address, and it will have a NATed external IP address.  The choice of transports
