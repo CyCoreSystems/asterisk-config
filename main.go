@@ -45,6 +45,10 @@ func main() {
 	if os.Getenv("CUSTOM_DIR") != "" {
 		customRoot = os.Getenv("CUSTOM_DIR")
 	}
+	if err := os.MkdirAll(customRoot, os.ModePerm); err != nil {
+		log.Println("failed to ensure custom directory", customRoot, ":", err.Error())
+		os.Exit(1)
+	}
 
 	exportRoot := "/etc/asterisk"
 	if os.Getenv("EXPORT_DIR") != "" {
