@@ -19,6 +19,7 @@ import (
 
 const amiUsername = "k8s-asterisk-config"
 
+// nolint: gocyclo
 func main() {
 
 	renderChan := make(chan error, 1)
@@ -140,7 +141,7 @@ func render(e *template.Engine, customRoot string, exportRoot string) error {
 		if info.IsDir() {
 			return os.MkdirAll(outFile, os.ModePerm)
 		}
-		if err := os.MkdirAll(path.Dir(outFile), os.ModePerm); err != nil {
+		if err = os.MkdirAll(path.Dir(outFile), os.ModePerm); err != nil {
 			return errors.Wrapf(err, "failed to create destination directory %s", path.Dir(outFile))
 		}
 		fileCount++
