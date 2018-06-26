@@ -183,7 +183,7 @@ func reload(username, secret, modules string) error {
 
 	ami, err := gami.Dial("127.0.0.1:5038")
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to dial AMI")
 	}
 
 	ami.Run()

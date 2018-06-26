@@ -4,8 +4,8 @@
 [[projects]]
   name = "github.com/CyCoreSystems/gami"
   packages = ["."]
-  revision = "2dd9d4eb6f60500c1afafa33fbf0f0e3960ae1a1"
-  version = "v0.2.0"
+  revision = "45155ccd626a451cd300a0fb443277318c5688dc"
+  version = "v0.3.0"
 
 [[projects]]
   name = "github.com/CyCoreSystems/netdiscover"
@@ -82,6 +82,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "20c672a0278b82ebfb512388edff26649a8137894fb142a545eb8bb07730e07c"
+  inputs-digest = "8498385c7216babfd8ccab75aeece3cf4802198b0051dcff9aa9f48f52e47152"
   solver-name = "gps-cdcl"
   solver-version = 1
