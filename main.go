@@ -156,7 +156,7 @@ func render(e *template.Engine, customRoot string, exportRoot string) error {
 		}
 		defer out.Close() // nolint: errcheck
 
-		in, err := os.Open(fn)
+		in, err := os.Open(fn) // nolint: gosec
 		if err != nil {
 			return errors.Wrapf(err, "failed to open template for reading: %s", fn)
 		}
