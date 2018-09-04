@@ -26,10 +26,6 @@
 
 
 [[constraint]]
-  name = "github.com/CyCoreSystems/gami"
-  version = "0.3.0"
-
-[[constraint]]
   name = "github.com/CyCoreSystems/netdiscover"
   version = "1.2.3"
 

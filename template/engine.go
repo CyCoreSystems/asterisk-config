@@ -33,7 +33,7 @@ type Engine struct {
 
 	watchers map[string]*k8s.Watcher
 
-	AMISecret string
+	ARISecret string
 
 	mu sync.Mutex
 }
@@ -42,9 +42,9 @@ type Engine struct {
 // as an indicator to reload and as a return channel for errors.  If `nil` is
 // passed down the channel, a reload is requested.  If an error is passed down,
 // the Engine has died and must be restarted.
-func NewEngine(reloadChan chan error, disc discover.Discoverer, amiSecret string) *Engine {
+func NewEngine(reloadChan chan error, disc discover.Discoverer, ariSecret string) *Engine {
 	return &Engine{
-		AMISecret: amiSecret,
+		ARISecret: ariSecret,
 		disc:      disc,
 		reload:    reloadChan,
 		watchers:  make(map[string]*k8s.Watcher),
@@ -158,7 +158,9 @@ func (e *Engine) Service(name, namespace string) (s *v1.Service, err error) {
 	ctx, cancel := boundedContext()
 	defer cancel()
 
-	err = e.kc.Get(ctx, namespace, name, s)
+	if err = e.kc.Get(ctx, namespace, name, s); err != nil {
+		return
+	}
 
 	if e.firstRenderCompleted {
 		return
@@ -207,7 +209,9 @@ func (e *Engine) Endpoints(name, namespace string) (ep *v1.Endpoints, err error)
 	ctx, cancel := boundedContext()
 	defer cancel()
 
-	err = e.kc.Get(ctx, namespace, name, ep)
+	if err = e.kc.Get(ctx, namespace, name, ep); err != nil {
+		return
+	}
 
 	if e.firstRenderCompleted {
 		return

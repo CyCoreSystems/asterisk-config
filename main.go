@@ -2,6 +2,7 @@ package main
 
 import (
 	"archive/zip"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -12,12 +13,11 @@ import (
 	"strings"
 
 	"github.com/CyCoreSystems/asterisk-config/template"
-	"github.com/CyCoreSystems/gami"
 	"github.com/CyCoreSystems/netdiscover/discover"
 	"github.com/pkg/errors"
 )
 
-const amiUsername = "k8s-asterisk-config"
+const ariUsername = "k8s-asterisk-config"
 
 // nolint: gocyclo
 func main() {
@@ -84,22 +84,26 @@ func main() {
 	e.FirstRenderComplete(true)
 
 	for {
+		log.Println("waiting for changes")
 		if err := <-renderChan; err != nil {
 			log.Println("failure during watch:", err.Error())
 			break
 		}
+		log.Println("change detected; re-rendering")
 
 		if err := render(e, customRoot, exportRoot); err != nil {
 			log.Println("failed to render:", err.Error())
 			break
 		}
 
-		if err := reload(amiUsername, e.AMISecret, modules); err != nil {
+		log.Println("reloading")
+		if err := reload(ariUsername, e.ARISecret, modules); err != nil {
 			log.Println("failed to reload asterisk modules:", err.Error())
 			break
 		}
 	}
 
+	log.Println("watch exited")
 	e.Close()
 	os.Exit(1)
 }
@@ -177,31 +181,35 @@ func render(e *template.Engine, customRoot string, exportRoot string) error {
 	return nil
 }
 
-func reload(username, secret, modules string) error {
+func reload(username, secret, modules string) (err error) {
+	urlFormat := "http://127.0.0.1:8088/asterisk/modules/%s"
 
-	list := strings.Split(modules, ",")
+	for _, m := range strings.Split(modules, ",") {
 
-	ami, err := gami.Dial("127.0.0.1:5038")
-	if err != nil {
-		return errors.Wrap(err, "failed to dial AMI")
-	}
-
-	ami.Run()
-	defer ami.Close()
-
-	if err = ami.Login(username, secret); err != nil {
-		return errors.Wrap(err, "failed to log into AMI")
-	}
-
-	for _, m := range list {
-		_, err = ami.Action("reload", gami.Params{
-			"ActionID": genSecret(),
-			"Module":   m,
-		})
+		var r *http.Request
+		r, err = http.NewRequest("PUT", fmt.Sprintf(urlFormat, m), nil)
 		if err != nil {
-			return errors.Wrapf(err, "failed to execute module reload for module (%s):", m)
+			return errors.Wrapf(err, "failed to construct module reload request for module %s", m)
+		}
+		r.Header.Set("Content-Type", "application/json")
+		r.SetBasicAuth(username, secret)
+
+		ret, err := http.DefaultClient.Do(r)
+		if err != nil {
+			return errors.Wrapf(err, "failed to contact ARI to reload module %s", m)
+		}
+		ret.Body.Close() // nolint
+
+		switch ret.StatusCode {
+		case http.StatusNotFound:
+			return errors.Errorf("module %s not already loaded", m)
+		case 409:
+			return errors.Errorf("module %s could not be reloaded", m)
+		default:
 		}
 	}
+
+	log.Println("reloads complete")
 	return nil
 }
 
