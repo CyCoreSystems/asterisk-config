@@ -84,19 +84,17 @@ func main() {
 	e.FirstRenderComplete(true)
 
 	for {
-		log.Println("waiting for changes")
 		if err := <-renderChan; err != nil {
 			log.Println("failure during watch:", err.Error())
 			break
 		}
-		log.Println("change detected; re-rendering")
+		log.Println("change detected")
 
 		if err := render(e, customRoot, exportRoot); err != nil {
 			log.Println("failed to render:", err.Error())
 			break
 		}
 
-		log.Println("reloading")
 		if err := reload(ariUsername, e.ARISecret, modules); err != nil {
 			log.Println("failed to reload asterisk modules:", err.Error())
 			break
