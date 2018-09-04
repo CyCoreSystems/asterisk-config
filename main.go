@@ -60,7 +60,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	modules := "pjsip"
+	modules := "res_pjsip.so"
 	if os.Getenv("RELOAD_MODULES") != "" {
 		modules = os.Getenv("RELOAD_MODULES")
 	}
