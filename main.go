@@ -182,7 +182,7 @@ func render(e *template.Engine, customRoot string, exportRoot string) error {
 }
 
 func reload(username, secret, modules string) (err error) {
-	urlFormat := "http://127.0.0.1:8088/asterisk/modules/%s"
+	urlFormat := "http://127.0.0.1:8088/ari/asterisk/modules/%s"
 
 	for _, m := range strings.Split(modules, ",") {
 
