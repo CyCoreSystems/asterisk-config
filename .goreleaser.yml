@@ -1,6 +1,7 @@
 project_name: Asterisk Config
 builds:
-   - env:
+   - binary: asterisk-config
+     env:
         - CGO_ENABLED=0
      goos:
         - linux
