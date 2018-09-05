@@ -18,6 +18,7 @@ import (
 )
 
 const ariUsername = "k8s-asterisk-config"
+const secretFilename = ".k8s-generated-secret"
 
 // nolint: gocyclo
 func main() {
@@ -29,8 +30,6 @@ func main() {
 		cloud = os.Getenv("CLOUD")
 	}
 	disc := getDiscoverer(cloud)
-
-	e := template.NewEngine(renderChan, disc, genSecret())
 
 	source := "/source/asterisk-config.zip"
 	if os.Getenv("SOURCE") != "" {
@@ -64,6 +63,14 @@ func main() {
 	if os.Getenv("RELOAD_MODULES") != "" {
 		modules = os.Getenv("RELOAD_MODULES")
 	}
+
+	secret, err := getOrCreateSecret(exportRoot)
+	if err != nil {
+		log.Println("failed to get secret:", err)
+		os.Exit(1)
+	}
+
+	e := template.NewEngine(renderChan, disc, secret)
 
 	// Export defaults
 	if err := render(e, defaultsRoot, exportRoot); err != nil {
@@ -122,6 +129,24 @@ func getDiscoverer(cloud string) discover.Discoverer {
 		log.Printf("WARNING: unhandled cloud %s\n", cloud)
 		return discover.NewDiscoverer()
 	}
+}
+
+func getOrCreateSecret(exportRoot string) (string, error) {
+
+	secret := genSecret()
+	secretPath := path.Join(exportRoot, secretFilename)
+
+	// Determine if a secret has already been generated
+	if data, err := ioutil.ReadFile(secretPath); err == nil {
+		if len(data) > 0 {
+			return string(data), nil
+		}
+	}
+
+	if err := ioutil.WriteFile(secretPath, []byte(secret), 0600); err != nil {
+		return "", errors.Wrap(err, "failed to write secret to file")
+	}
+	return secret, nil
 }
 
 func render(e *template.Engine, customRoot string, exportRoot string) error {
@@ -204,7 +229,7 @@ func reload(username, secret, modules string) (err error) {
 		case http.StatusNotFound:
 			return errors.Errorf("module %s not already loaded", m)
 		case http.StatusUnauthorized:
-			return errors.Errorf("module %s failed to reload due bad authentication")
+			return errors.Errorf("module %s failed to reload due bad authentication", m)
 		case 409:
 			return errors.Errorf("module %s could not be reloaded", m)
 		default:

@@ -3,6 +3,7 @@ package template
 import (
 	"context"
 	"errors"
+	"log"
 	"math/rand"
 	"os"
 	"strings"
@@ -74,6 +75,8 @@ func (e *Engine) connectKube() (err error) {
 }
 
 func (e *Engine) failure(err error) {
+	log.Println("engine failure encountered:", err)
+
 	e.Close()
 
 	if e.reload != nil {
