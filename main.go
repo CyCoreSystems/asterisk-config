@@ -11,6 +11,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/CyCoreSystems/asterisk-config/template"
 	"github.com/CyCoreSystems/netdiscover/discover"
@@ -20,10 +21,36 @@ import (
 const ariUsername = "k8s-asterisk-config"
 const secretFilename = ".k8s-generated-secret"
 
+var maxShortDeaths = 10
+var minRuntime = time.Minute
+
+// Service maintains an Asterisk configuration set
+type Service struct {
+
+	// Discoverer is the engine which should be used for network discovery
+	Discoverer discover.Discoverer
+
+	// Secret is the password which should be used for internal administrative authentication
+	Secret string
+
+	// CustomRoot is the directory which contains the tree of custom configuration templates
+	CustomRoot string
+
+	// DefaultsRoot is the directory which contains the default configuration templates
+	DefaultsRoot string
+
+	// ExportRoot is the destination directory to which the rendered configuration set will be exported.
+	ExportRoot string
+
+	// Modules is the list of Asterisk modules which should be reloaded after each render is complete.
+	Modules string
+
+	// engine is the template rendering and monitoring engine
+	engine *template.Engine
+}
+
 // nolint: gocyclo
 func main() {
-
-	renderChan := make(chan error, 1)
 
 	cloud := ""
 	if os.Getenv("CLOUD") != "" {
@@ -70,47 +97,81 @@ func main() {
 		os.Exit(1)
 	}
 
-	e := template.NewEngine(renderChan, disc, secret)
-
-	// Export defaults
-	if err := render(e, defaultsRoot, exportRoot); err != nil {
-		log.Println("failed to render defaults", err.Error())
-		os.Exit(1)
-	}
-
-	// Extract the source
+	// Try to extract the source
 	if err := extractSource(source, customRoot); err != nil {
 		log.Printf("failed to load source from %s: %s\n", source, err.Error())
 	}
 
-	// Execute the first render
-	if err := render(e, customRoot, exportRoot); err != nil {
-		log.Println("failed to render configuration:", err.Error())
-		os.Exit(1)
+	var shortDeaths int
+	var t time.Time
+	for shortDeaths < maxShortDeaths {
+
+		svc := &Service{
+			Discoverer:   disc,
+			Secret:       secret,
+			CustomRoot:   customRoot,
+			DefaultsRoot: defaultsRoot,
+			ExportRoot:   exportRoot,
+			Modules:      modules,
+		}
+
+		t = time.Now()
+		log.Println("running service")
+		err := svc.Run()
+		log.Println("service exited:", err)
+		if time.Since(t) < minRuntime {
+			shortDeaths++
+		} else {
+			shortDeaths = 0
+		}
 	}
-	e.FirstRenderComplete(true)
+
+	log.Println("asterisk-config exiting")
+	os.Exit(1)
+
+}
+
+// Run executes the Service
+func (s *Service) Run() error {
+
+	renderChan := make(chan error, 1)
+
+	s.engine = template.NewEngine(renderChan, s.Discoverer, s.Secret)
+	defer s.engine.Close()
+
+	// Export defaults
+	if err := s.renderDefaults(); err != nil {
+		return errors.Wrap(err, "failed to render defaults")
+	}
+
+	// Execute the first render
+	if err := s.renderCustom(); err != nil {
+		return errors.Wrap(err, "failed to render initial configuration")
+	}
+	s.engine.FirstRenderComplete(true)
 
 	for {
 		if err := <-renderChan; err != nil {
-			log.Println("failure during watch:", err.Error())
-			break
+			return errors.Wrap(err, "failure during watch")
 		}
 		log.Println("change detected")
 
-		if err := render(e, customRoot, exportRoot); err != nil {
-			log.Println("failed to render:", err.Error())
-			break
+		if err := s.renderCustom(); err != nil {
+			return errors.Wrap(err, "failed to render configuration")
 		}
 
-		if err := reload(ariUsername, e.ARISecret, modules); err != nil {
-			log.Println("failed to reload asterisk modules:", err.Error())
-			break
+		if err := reload(ariUsername, s.Secret, s.Modules); err != nil {
+			return errors.Wrap(err, "failed to reload asterisk modules")
 		}
 	}
+}
 
-	log.Println("watch exited")
-	e.Close()
-	os.Exit(1)
+func (s *Service) renderDefaults() error {
+	return render(s.engine, s.DefaultsRoot, s.ExportRoot)
+}
+
+func (s *Service) renderCustom() error {
+	return render(s.engine, s.CustomRoot, s.ExportRoot)
 }
 
 func getDiscoverer(cloud string) discover.Discoverer {
