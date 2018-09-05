@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 # Only run if we are inside Travis-CI
 if [ ! -e $CI ]; then

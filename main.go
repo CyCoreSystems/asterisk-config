@@ -199,11 +199,16 @@ func reload(username, secret, modules string) (err error) {
 		ret.Body.Close() // nolint
 
 		switch ret.StatusCode {
+		case http.StatusNoContent:
+			continue
 		case http.StatusNotFound:
 			return errors.Errorf("module %s not already loaded", m)
+		case http.StatusUnauthorized:
+			return errors.Errorf("module %s failed to reload due bad authentication")
 		case 409:
 			return errors.Errorf("module %s could not be reloaded", m)
 		default:
+			return errors.Errorf("module %s reload failed: %s", m, ret.Status)
 		}
 	}
 
