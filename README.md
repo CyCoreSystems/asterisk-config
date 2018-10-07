@@ -71,6 +71,10 @@ flow _directly_ to your Asterisk Pods (`-external-media`) or by way of
 For each of your PJSIP `Endpoints`, just specify the transport you wish to
 use.
 
+ - ![Internal SIP, Internal RTP](./Documentation/pjsip-int-int.svg)
+ - ![Internal SIP, External RTP](./Documentation/pjsip-int-ext.svg)
+ - ![External SIP, External RTP](./Documentation/pjsip-ext-ext.svg)
+
 ### Custom configuration
 
 While your custom configurations are allowed to overwrite any Asterisk
