@@ -3,7 +3,6 @@ package template
 import (
 	"context"
 	"errors"
-	"log"
 	"math/rand"
 	"os"
 	"strings"
@@ -12,7 +11,7 @@ import (
 
 	"github.com/CyCoreSystems/netdiscover/discover"
 	"github.com/ericchiang/k8s"
-	"github.com/ericchiang/k8s/apis/core/v1"
+	v1 "github.com/ericchiang/k8s/apis/core/v1"
 )
 
 // KubeAPITimeout is the amount of time to wait for the kubernetes API to respond before failing
@@ -75,8 +74,6 @@ func (e *Engine) connectKube() (err error) {
 }
 
 func (e *Engine) failure(err error) {
-	log.Println("engine failure encountered:", err)
-
 	e.Close()
 
 	if e.reload != nil {
