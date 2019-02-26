@@ -235,6 +235,12 @@ func (e *Engine) Endpoints(name, namespace string) (ep *v1.Endpoints, err error)
 					e.failure(err)
 					return
 				}
+
+				// HACK: workaround for super-chatty nats-operator, which updates its annotation every second
+				if watched.GetMetadata().GetName() == "nats-operator" {
+					continue
+				}
+
 				e.reload <- nil
 			}
 		}()
