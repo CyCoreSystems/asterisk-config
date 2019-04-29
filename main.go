@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/CyCoreSystems/asterisk-config/template"
+	"github.com/CyCoreSystems/kubetemplate"
 	"github.com/CyCoreSystems/netdiscover/discover"
 	"github.com/pkg/errors"
 )
@@ -46,7 +46,7 @@ type Service struct {
 	Modules string
 
 	// engine is the template rendering and monitoring engine
-	engine *template.Engine
+	engine *kubetemplate.Engine
 }
 
 // nolint: gocyclo
@@ -136,7 +136,7 @@ func (s *Service) Run() error {
 
 	renderChan := make(chan error, 1)
 
-	s.engine = template.NewEngine(renderChan, s.Discoverer, s.Secret)
+	s.engine = kubetemplate.NewEngine(renderChan, s.Discoverer, s.Secret)
 	defer s.engine.Close()
 
 	// Export defaults
@@ -210,7 +210,7 @@ func getOrCreateSecret(exportRoot string) (string, error) {
 	return secret, nil
 }
 
-func render(e *template.Engine, customRoot string, exportRoot string) error {
+func render(e *kubetemplate.Engine, customRoot string, exportRoot string) error {
 
 	var fileCount int
 
@@ -247,7 +247,7 @@ func render(e *template.Engine, customRoot string, exportRoot string) error {
 		defer in.Close() // nolint: errcheck
 
 		if isTemplate {
-			return template.Render(e, in, out)
+			return kubetemplate.Render(e, in, out)
 		}
 
 		_, err = io.Copy(out, in)
