@@ -91,10 +91,14 @@ func main() {
 		modules = os.Getenv("RELOAD_MODULES")
 	}
 
-	secret, err := getOrCreateSecret(exportRoot)
-	if err != nil {
-		log.Println("failed to get secret:", err)
-		os.Exit(1)
+	secret := os.Getenv("ARI_AUTOSECRET")
+	if secret == "" {
+		secret, err := getOrCreateSecret(exportRoot)
+		if err != nil {
+			log.Println("failed to get secret:", err)
+			os.Exit(1)
+		}
+		os.Setenv("ARI_AUTOSECRET", secret)
 	}
 
 	// Try to extract the source
@@ -136,7 +140,7 @@ func (s *Service) Run() error {
 
 	renderChan := make(chan error, 1)
 
-	s.engine = kubetemplate.NewEngine(renderChan, s.Discoverer, s.Secret)
+	s.engine = kubetemplate.NewEngine(renderChan, s.Discoverer)
 	defer s.engine.Close()
 
 	// Export defaults

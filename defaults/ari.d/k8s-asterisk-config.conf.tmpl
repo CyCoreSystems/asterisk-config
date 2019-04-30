@@ -1,4 +1,4 @@
 [k8s-asterisk-config]
 type = user
-password = {{.ARISecret}}
+password = {{.Env "ARI_AUTOSECRET"}}
 password_format = plain
