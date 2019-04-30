@@ -186,6 +186,8 @@ func getDiscoverer(cloud string) discover.Discoverer {
 		return discover.NewDigitalOceanDiscoverer()
 	case "gcp":
 		return discover.NewGCPDiscoverer()
+	case "":
+		return discover.NewDiscoverer()
 	default:
 		log.Printf("WARNING: unhandled cloud %s\n", cloud)
 		return discover.NewDiscoverer()
