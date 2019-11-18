@@ -51,6 +51,7 @@ type Service struct {
 
 // nolint: gocyclo
 func main() {
+	var err error
 
 	cloud := ""
 	if os.Getenv("CLOUD") != "" {
@@ -81,7 +82,7 @@ func main() {
 	if os.Getenv("EXPORT_DIR") != "" {
 		exportRoot = os.Getenv("EXPORT_DIR")
 	}
-	if err := os.MkdirAll(exportRoot, os.ModePerm); err != nil {
+	if err = os.MkdirAll(exportRoot, os.ModePerm); err != nil {
 		log.Println("failed to ensure destination directory", exportRoot, ":", err.Error())
 		os.Exit(1)
 	}
@@ -93,7 +94,7 @@ func main() {
 
 	secret := os.Getenv("ARI_AUTOSECRET")
 	if secret == "" {
-		secret, err := getOrCreateSecret(exportRoot)
+		secret, err = getOrCreateSecret(exportRoot)
 		if err != nil {
 			log.Println("failed to get secret:", err)
 			os.Exit(1)
@@ -132,12 +133,10 @@ func main() {
 
 	log.Println("asterisk-config exiting")
 	os.Exit(1)
-
 }
 
 // Run executes the Service
 func (s *Service) Run() error {
-
 	renderChan := make(chan error, 1)
 
 	s.engine = kubetemplate.NewEngine(renderChan, s.Discoverer)
@@ -199,7 +198,6 @@ func getDiscoverer(cloud string) discover.Discoverer {
 }
 
 func getOrCreateSecret(exportRoot string) (string, error) {
-
 	secret := genSecret()
 	secretPath := path.Join(exportRoot, secretFilename)
 
@@ -217,7 +215,6 @@ func getOrCreateSecret(exportRoot string) (string, error) {
 }
 
 func render(e *kubetemplate.Engine, customRoot string, exportRoot string) error {
-
 	var fileCount int
 
 	err := filepath.Walk(customRoot, func(fn string, info os.FileInfo, err error) error {
@@ -259,7 +256,6 @@ func render(e *kubetemplate.Engine, customRoot string, exportRoot string) error 
 		_, err = io.Copy(out, in)
 		return err
 	})
-
 	if err != nil {
 		return err
 	}
@@ -309,7 +305,6 @@ func reload(username, secret, modules string) (err error) {
 }
 
 func extractSource(source, customRoot string) (err error) {
-
 	if strings.HasPrefix(source, "http") {
 		source, err = downloadSource(source)
 		if err != nil {
