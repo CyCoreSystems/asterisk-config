@@ -123,9 +123,15 @@ environment.  The valid options are:
   - `azure` Microsoft Azure
   - `digitalocean` or `do` Digital Ocean
   - `gcp` Google Cloud Platform
+  - `` default discovery
 
-set to one of:
+Default discovery is useful for baremetal configurations or situations where you
+do not wish to use the cloud provider's self discovery API. 
 
+***NOTE***: Importantly, in cases where you need Asterisk to use the kubernetes
+Pod IP address instead of the Node IP address, set the `CLOUD` variable to be
+the empty string.  Default discovery also works for public IP addresses by using
+the `jsonip.io` service.
 
 Asterisk Config offers varying levels of configuration complexity, allowing you
 to easily just get your Asterisk system off the ground or to build a
