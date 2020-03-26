@@ -20,6 +20,7 @@ import (
 
 const ariUsername = "k8s-asterisk-config"
 const secretFilename = ".k8s-generated-secret"
+const renderFlagFilename = ".asterisk-config"
 
 var maxShortDeaths = 10
 var minRuntime = time.Minute
@@ -151,6 +152,12 @@ func (s *Service) Run() error {
 	if err := s.renderCustom(); err != nil {
 		return errors.Wrap(err, "failed to render initial configuration")
 	}
+
+	// Write out render flag file to signal completion
+	if err := ioutil.WriteFile(path.Join(s.ExportRoot, renderFlagFilename), []byte("complete"), 0666); err != nil {
+		return errors.Wrap(err, "failed to write render flag file")
+	}
+
 	s.engine.FirstRenderComplete(true)
 
 	for {

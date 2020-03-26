@@ -137,6 +137,10 @@ Asterisk Config offers varying levels of configuration complexity, allowing you
 to easily just get your Asterisk system off the ground or to build a
 fully-templated configuration set.
 
+It is a common problem that Asterisk may start before the config has been
+written.  In order to eliminate that eventuality, you should check for the
+existence of the `.asterisk-config` file before allowing Asterisk to start.
+
 ### Basic Usage
 
 The simplest use is: to create the set of custom Asterisk configurations
