@@ -10,10 +10,11 @@ builds:
      goarch:
         - amd64
 
-archive:
-   format: tar.gz
-   name_template: "{{ .Binary }}.{{ .Os }}.{{ .Arch }}"
-   files:
+archives:
+   - id: asterisk-config
+     format: tar.gz
+     name_template: "{{ .Binary }}.{{ .Os }}.{{ .Arch }}"
+     files:
       - 'defaults/*'
       - 'defaults/ari.d/*'
       - 'defaults/extensions.d/*'
@@ -33,11 +34,10 @@ changelog:
        - '^test:'
 
 dockers:
-   - image: cycoresystems/asterisk-config
-     tag_templates:
-        - "{{ .Tag }}"
-        - "v{{ .Major }}"
-        - "v{{ .Major }}.{{ .Minor }}"
-        - latest
+   - image_templates:
+      - 'cycoresystems/asterisk-config:{{ .Tag }}'
+      - 'cycoresystems/asterisk-config:{{ .Major }}'
+      - 'cycoresystems/asterisk-config:{{ .Major }}.{{ .Minor }}'
+      - 'cycoresystems/asterisk-config:latest'
      extra_files:
         - 'defaults/'
