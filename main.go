@@ -160,6 +160,18 @@ func (s *Service) Run() error {
 
 	s.engine.FirstRenderComplete(true)
 
+	// Wait for Asterisk to come up before proceeding, so as to not interrupt
+	// normal Asterisk loading with a reload
+	if err := waitAsterisk(ariUsername, s.Secret); err != nil {
+		return errors.Wrap(err, "failed to wait for Asterisk to come up")
+	}
+
+	// pad Asterisk startup to wait for complete load
+	//
+	// FIXME: we need to figure out a canonical and proactive way to determine
+	// is Asterisk fully up
+	time.Sleep(time.Second)
+
 	for {
 		if err := <-renderChan; err != nil {
 			return errors.Wrap(err, "failure during watch")
@@ -272,6 +284,31 @@ func render(e *kubetemplate.Engine, customRoot string, exportRoot string) error 
 	}
 
 	return nil
+}
+
+func waitAsterisk(username, secret string) error {
+	r, err := http.NewRequest("GET", "http://127.0.0.1:8088/ari/asterisk/ping", nil)
+	if err != nil {
+		return errors.Wrap(err, "failed to construct ping request")
+	}
+	r.Header.Set("Content-Type", "application/json")
+	r.SetBasicAuth(username, secret)
+
+	for {
+		ret, err := http.DefaultClient.Do(r)
+		if err != nil {
+			time.Sleep(time.Second)
+			continue
+		}
+
+		if err := ret.Body.Close(); err != nil {
+			return errors.Wrap(err, "failed to close http response body")
+		}
+
+		if ret.StatusCode == http.StatusOK {
+			return nil
+		}
+	}
 }
 
 func reload(username, secret, modules string) (err error) {
