@@ -3,6 +3,7 @@ package main
 import (
 	"archive/zip"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -170,18 +171,6 @@ func (s *Service) Run() error {
 
 	s.engine.FirstRenderComplete(true)
 
-	// Wait for Asterisk to come up before proceeding, so as to not interrupt
-	// normal Asterisk loading with a reload
-	if err := waitAsterisk(ariUsername, s.Secret); err != nil {
-		return errors.Wrap(err, "failed to wait for Asterisk to come up")
-	}
-
-	// pad Asterisk startup to wait for complete load
-	//
-	// FIXME: we need to figure out a canonical and proactive way to determine
-	// is Asterisk fully up
-	time.Sleep(time.Second)
-
 	for {
 		if err := <-renderChan; err != nil {
 			return errors.Wrap(err, "failure during watch")
@@ -295,27 +284,39 @@ func render(e *kubetemplate.Engine, customRoot string, exportRoot string) error 
 }
 
 func waitAsterisk(username, secret string) error {
-	r, err := http.NewRequest("GET", "http://127.0.0.1:8088/ari/asterisk/ping", nil)
+	r, err := http.NewRequest("GET", "http://127.0.0.1:8088/ari/asterisk/variable?variable=ASTERISK_CONFIG_SYSTEM_READY", nil)
 	if err != nil {
 		return errors.Wrap(err, "failed to construct ping request")
 	}
 	r.Header.Set("Content-Type", "application/json")
 	r.SetBasicAuth(username, secret)
 
+	type response struct {
+		Value string `json:"value"`
+	}
+	resp := new(response)
+
 	for {
+		time.Sleep(time.Second / 2)
+
 		ret, err := http.DefaultClient.Do(r)
 		if err != nil {
-			time.Sleep(time.Second)
 			continue
 		}
 
-		if err := ret.Body.Close(); err != nil {
-			return errors.Wrap(err, "failed to close http response body")
+		if err = json.NewDecoder(ret.Body).Decode(resp); err != nil {
+			// failed to decode into resp format
+			log.Println("failed to decode Asterisk response:", err)
+			continue
+		}
+		if resp.Value != "1" {
+			// not yet ready
+			continue
 		}
 
-		if ret.StatusCode == http.StatusOK {
-			return nil
-		}
+		// System ready
+		log.Println("Asterisk ready")
+		return nil
 	}
 }
 
@@ -437,6 +438,13 @@ func newReloader(ctx context.Context, username, secret, modules string) *reloade
 }
 
 func (r *reloader) run(ctx context.Context) {
+	// Wait for Asterisk to come up before proceeding, so as to not interrupt
+	// normal Asterisk loading with a reload
+	log.Println("Waiting for Asterisk to be ready...")
+	if err := waitAsterisk(r.username, r.secret); err != nil {
+		log.Fatalln("failed to wait for Asterisk to come up:", err)
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
