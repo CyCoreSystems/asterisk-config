@@ -1,3 +1,4 @@
 /asterisk-config
 /vendor/
 /test/
+/local_test.sh
