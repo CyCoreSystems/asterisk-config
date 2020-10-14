@@ -31,12 +31,21 @@ var defaultMinReloadInterval = 5 * time.Second
 
 // Service maintains an Asterisk configuration set
 type Service struct {
-
 	// Discoverer is the engine which should be used for network discovery
 	Discoverer discover.Discoverer
 
 	// Secret is the password which should be used for internal administrative authentication
 	Secret string
+
+	// SourceFile is the source zip file in the filesystem
+	// This can be a mounted secret, or a just a zip file embeded in the container
+	SourceFile string
+
+	// SourceSecret indicates the source zip file is stored in a secret
+	SourceSecret string
+
+	// Namespace is the current namespace where to watch for secret changes
+	Namespace string
 
 	// CustomRoot is the directory which contains the tree of custom configuration templates
 	CustomRoot string
@@ -52,6 +61,9 @@ type Service struct {
 
 	// engine is the template rendering and monitoring engine
 	engine *kubetemplate.Engine
+
+	// secretEngine is the engine used to react to SourceSecret changes
+	secretEngine *kubetemplate.Engine
 }
 
 // nolint: gocyclo
@@ -64,9 +76,20 @@ func main() {
 	}
 	disc := getDiscoverer(cloud)
 
-	source := "/source/asterisk-config.zip"
+	sourceFile := "/source/asterisk-config.zip"
 	if os.Getenv("SOURCE") != "" {
-		source = os.Getenv("SOURCE")
+		sourceFile = os.Getenv("SOURCE")
+	}
+
+	secretSourceName := ""
+	if os.Getenv("SECRET_SOURCE_NAME") != "" {
+		secretSourceName = os.Getenv("SECRET_SOURCE_NAME")
+		sourceFile = ""
+	}
+
+	namespace := ""
+	if os.Getenv("POD_NAMESPACE") != "" {
+		namespace = os.Getenv("POD_NAMESPACE")
 	}
 
 	defaultsRoot := "/defaults"
@@ -107,11 +130,6 @@ func main() {
 		os.Setenv("ARI_AUTOSECRET", secret)
 	}
 
-	// Try to extract the source
-	if err := extractSource(source, customRoot); err != nil {
-		log.Printf("failed to load source from %s: %s\n", source, err.Error())
-	}
-
 	var shortDeaths int
 	var t time.Time
 	for shortDeaths < maxShortDeaths {
@@ -119,6 +137,9 @@ func main() {
 		svc := &Service{
 			Discoverer:   disc,
 			Secret:       secret,
+			SourceFile:   sourceFile,
+			SourceSecret: secretSourceName,
+			Namespace:    namespace,
 			CustomRoot:   customRoot,
 			DefaultsRoot: defaultsRoot,
 			ExportRoot:   exportRoot,
@@ -152,12 +173,87 @@ func (s *Service) Run() error {
 	s.engine = kubetemplate.NewEngine(renderChan, s.Discoverer)
 	defer s.engine.Close()
 
+	s.secretEngine = kubetemplate.NewEngine(renderChan, s.Discoverer)
+	defer s.secretEngine.Close()
+
+	// Run the initial full render cycle
+	if err := s.renderFull(); err != nil {
+		return errors.Wrap(err, "failed to run the initial render")
+	}
+
+	r.Reload()
+
+	s.engine.FirstRenderComplete(true)
+
+	// Start watching the configuration secret using Kubetemplate
+	if s.SourceSecret != "" {
+		if _, err := s.secretEngine.SecretBinary(s.SourceSecret, s.Namespace, "asterisk-config.zip"); err != nil {
+			return errors.Wrap(err, "failure during source secret watch")
+		}
+		s.secretEngine.FirstRenderComplete(true)
+	}
+
+	// Render loop
+	for {
+		if err := <-renderChan; err != nil {
+			return errors.Wrap(err, "failure during watch")
+		}
+		log.Println("change detected")
+
+		// Run the full render cycle to react to config change
+		if err := s.renderFull(); err != nil {
+			return errors.Wrap(err, "failed to re-render configuration")
+		}
+
+		// Reload the Asterik modules
+		r.Reload()
+	}
+}
+
+func clearDir(dir string) error {
+	files, err := filepath.Glob(filepath.Join(dir, "*"))
+	if err != nil {
+		return err
+	}
+	for _, file := range files {
+		err = os.RemoveAll(file)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *Service) renderFull() error {
+	if s.SourceSecret != "" {
+		// Read the zip from the Secret
+		if err := s.writeSecretFile(); err != nil {
+			return errors.Wrap(err, "failed to extract secret")
+		}
+
+		s.SourceFile = "/asterisk-config.zip"
+	}
+
+	// Need to make sure that the ExportRoot is clean before rendering the
+	// template because if we extract something to it, and later the secret
+	// changes, the new zip might not have some files that it had before, and
+	// we end up with inconsistent state. Removing everything does not affect
+	// Asterisk as the files will only be considered when reloading modules.
+	if err := clearDir(s.ExportRoot); err != nil {
+		return errors.Wrap(err, "failed to cleanup export directory")
+	}
+
+	// Extract the source file
+	if err := extractSource(s.SourceFile, s.CustomRoot); err != nil {
+		return errors.Wrap(err, "failed extract source from")
+	}
+
 	// Export defaults
 	if err := s.renderDefaults(); err != nil {
 		return errors.Wrap(err, "failed to render defaults")
 	}
 
-	// Execute the first render
+	// Export custom configs
 	if err := s.renderCustom(); err != nil {
 		return errors.Wrap(err, "failed to render initial configuration")
 	}
@@ -167,22 +263,20 @@ func (s *Service) Run() error {
 		return errors.Wrap(err, "failed to write render flag file")
 	}
 
-	r.Reload()
+	return nil
+}
 
-	s.engine.FirstRenderComplete(true)
-
-	for {
-		if err := <-renderChan; err != nil {
-			return errors.Wrap(err, "failure during watch")
-		}
-		log.Println("change detected")
-
-		if err := s.renderCustom(); err != nil {
-			return errors.Wrap(err, "failed to render configuration")
-		}
-
-		r.Reload()
+func (s *Service) writeSecretFile() error {
+	data, err := s.secretEngine.SecretBinary(s.SourceSecret, s.Namespace, "asterisk-config.zip")
+	if err != nil {
+		return errors.Wrap(err, "failure during source secret fetch")
 	}
+
+	if err := ioutil.WriteFile("/asterisk-config.zip", data, 0666); err != nil {
+		return errors.Wrap(err, "failed to write secret data")
+	}
+
+	return nil
 }
 
 func (s *Service) renderDefaults() error {
