@@ -242,7 +242,7 @@ spec:
       hostNetwork: true
       containers:
         - name: config
-          image: cycoresystems/asterisk-config
+          image: ghcr.io/cycoresystems/asterisk-config
           env:
             - name: POD_NAMESPACE
               valueFrom:
