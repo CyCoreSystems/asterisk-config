@@ -54,8 +54,6 @@ dockers:
      dockerfile: Dockerfile.goreleaser
      build_flag_templates:
        - "--platform=linux/amd64"
-     extra_files:
-        - 'defaults/'
    - image_templates:
       - 'cycoresystems/asterisk-config:{{ .Tag }}-arm64v8'
       - 'cycoresystems/asterisk-config:{{ .Major }}-arm64v8'
@@ -73,8 +71,6 @@ dockers:
      dockerfile: Dockerfile.goreleaser
      build_flag_templates:
        - "--platform=linux/arm64/v8"
-     extra_files:
-        - 'defaults/'
 docker_manifests:
   - name_template: 'cycoresystems/asterisk-config:{{ .Tag }}'
     image_templates:
