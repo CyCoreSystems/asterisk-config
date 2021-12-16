@@ -12,8 +12,6 @@ builds:
         - arm64
 
 archives:
-   - id: image
-     format: binary
    - id: asterisk-config
      format: tar.gz
      name_template: "{{ .Binary }}.{{ .Os }}.{{ .Arch }}"
@@ -49,9 +47,9 @@ dockers:
      use: buildx
      goos: linux
      goarch: amd64
-     ids:
-       - image
      dockerfile: Dockerfile.goreleaser
+     extra_files:
+        - 'defaults/'
      build_flag_templates:
        - "--platform=linux/amd64"
    - image_templates:
@@ -66,9 +64,9 @@ dockers:
      use: buildx
      goos: linux
      goarch: arm64v8
-     ids:
-       - image
      dockerfile: Dockerfile.goreleaser
+     extra_files:
+        - 'defaults/'
      build_flag_templates:
        - "--platform=linux/arm64/v8"
 docker_manifests:
