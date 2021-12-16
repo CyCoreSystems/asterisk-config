@@ -47,7 +47,10 @@ dockers:
       - 'ghcr.io/cycoresystems/asterisk-config:{{ .Major }}.{{ .Minor }}-amd64'
       - 'ghcr.io/cycoresystems/asterisk-config:latest-amd64'
      use: buildx
+     goos: linux
      goarch: amd64
+     ids:
+       - image
      dockerfile: Dockerfile.goreleaser
      build_flag_templates:
        - "--platform=linux/amd64"
@@ -63,7 +66,10 @@ dockers:
       - 'ghcr.io/cycoresystems/asterisk-config:{{ .Major }}.{{ .Minor }}-arm64v8'
       - 'ghcr.io/cycoresystems/asterisk-config:latest-arm64v8'
      use: buildx
+     goos: linux
      goarch: arm64v8
+     ids:
+       - image
      dockerfile: Dockerfile.goreleaser
      build_flag_templates:
        - "--platform=linux/arm64/v8"
