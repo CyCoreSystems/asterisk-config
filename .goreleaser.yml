@@ -17,11 +17,6 @@ archives:
      name_template: "{{ .Binary }}.{{ .Os }}.{{ .Arch }}"
      files:
       - 'defaults/*'
-      - 'defaults/ari.d/*'
-      - 'defaults/extensions.d/*'
-      - 'defaults/manager.d/*'
-      - 'defaults/pjsip.d/*'
-      - 'defaults/voicemail.d/*'
 checksum:
   name_template: 'checksums.txt'
 snapshot:
@@ -63,7 +58,7 @@ dockers:
       - 'ghcr.io/cycoresystems/asterisk-config:latest-arm64v8'
      use: buildx
      goos: linux
-     goarch: arm64v8
+     goarch: arm64
      dockerfile: Dockerfile.goreleaser
      extra_files:
         - 'defaults/'
