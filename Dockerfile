@@ -1,6 +1,6 @@
 FROM golang:alpine AS builder
 RUN apk add --no-cache git
-WORKDIR $GOPATH/src/github.com/CyCoreSystems/ari-proxy
+WORKDIR $GOPATH/src/github.com/CyCoreSystems/asterisk-config
 COPY . .
 RUN go get -d -v
 RUN go build -o /go/bin/app
