@@ -35,9 +35,67 @@ changelog:
 
 dockers:
    - image_templates:
-      - 'cycoresystems/asterisk-config:{{ .Tag }}'
-      - 'cycoresystems/asterisk-config:{{ .Major }}'
-      - 'cycoresystems/asterisk-config:{{ .Major }}.{{ .Minor }}'
-      - 'cycoresystems/asterisk-config:latest'
+      - 'cycoresystems/asterisk-config:{{ .Tag }-amd64}'
+      - 'cycoresystems/asterisk-config:{{ .Major }}-amd64'
+      - 'cycoresystems/asterisk-config:{{ .Major }}.{{ .Minor }}-amd64'
+      - 'cycoresystems/asterisk-config:latest-amd64'
+      - 'ghcr.io/cycoresystems/asterisk-config:{{ .Tag }-amd64}'
+      - 'ghcr.io/cycoresystems/asterisk-config:{{ .Major }}-amd64'
+      - 'ghcr.io/cycoresystems/asterisk-config:{{ .Major }}.{{ .Minor }}-amd64'
+      - 'ghcr.io/cycoresystems/asterisk-config:latest-amd64'
+     use: buildx
+     goarch: amd64
+     dockerfile: Dockerfile.goreleaser
+     build_flag_templates:
+       - "--platform=linux/amd64"
      extra_files:
         - 'defaults/'
+   - image_templates:
+      - 'cycoresystems/asterisk-config:{{ .Tag }-arm64v8}'
+      - 'cycoresystems/asterisk-config:{{ .Major }}-arm64v8'
+      - 'cycoresystems/asterisk-config:{{ .Major }}.{{ .Minor }}-arm64v8'
+      - 'cycoresystems/asterisk-config:latest-arm64v8'
+      - 'ghcr.io/cycoresystems/asterisk-config:{{ .Tag }-arm64v8}'
+      - 'ghcr.io/cycoresystems/asterisk-config:{{ .Major }}-arm64v8'
+      - 'ghcr.io/cycoresystems/asterisk-config:{{ .Major }}.{{ .Minor }}-arm64v8'
+      - 'ghcr.io/cycoresystems/asterisk-config:latest-arm64v8'
+     use: buildx
+     goarch: arm64v8
+     dockerfile: Dockerfile.goreleaser
+     build_flag_templates:
+       - "--platform=linux/arm64/v8"
+     extra_files:
+        - 'defaults/'
+docker_manifests:
+  - name_template: 'cycoresystems/asterisk-config:{{ .Tag }}'
+    image_templates:
+      - cycoresystems/asterisk-config:{{ .Tag }}-amd64
+      - cycoresystems/asterisk-config:{{ .Tag }}-arm64v8
+  - name_template: 'ghcr.io/cycoresystems/asterisk-config:{{ .Tag }}'
+    image_templates:
+      - ghcr.io/cycoresystems/asterisk-config:{{ .Tag }}-amd64
+      - ghcr.io/cycoresystems/asterisk-config:{{ .Tag }}-arm64v8
+  - name_template: 'cycoresystems/asterisk-config:v{{ .Major }}'
+    image_templates:
+      - cycoresystems/asterisk-config:v{{ .Major }}-amd64
+      - cycoresystems/asterisk-config:v{{ .Major }}-arm64v8
+  - name_template: 'ghcr.io/cycoresystems/asterisk-config:v{{ .Major }}'
+    image_templates:
+      - ghcr.io/cycoresystems/asterisk-config:v{{ .Major }}-amd64
+      - ghcr.io/cycoresystems/asterisk-config:v{{ .Major }}-arm64v8
+  - name_template: 'cycoresystems/asterisk-config:v{{ .Major }}.{{ .Minor }}'
+    image_templates:
+      - cycoresystems/asterisk-config:v{{ .Major }}.{{ .Minor }}-amd64
+      - cycoresystems/asterisk-config:v{{ .Major }}.{{ .Minor }}-arm64v8
+  - name_template: 'ghcr.io/cycoresystems/asterisk-config:v{{ .Major }}.{{ .Minor }}'
+    image_templates:
+      - ghcr.io/cycoresystems/asterisk-config:v{{ .Major }}.{{ .Minor }}-amd64
+      - ghcr.io/cycoresystems/asterisk-config:v{{ .Major }}.{{ .Minor }}-arm64v8
+  - name_template: 'cycoresystems/asterisk-config:latest'
+    image_templates:
+      - cycoresystems/asterisk-config:latest-amd64
+      - cycoresystems/asterisk-config:latest-arm64v8
+  - name_template: 'ghcr.io/cycoresystems/asterisk-config:latest'
+    image_templates:
+      - ghcr.io/cycoresystems/asterisk-config:latest-amd64
+      - ghcr.io/cycoresystems/asterisk-config:latest-arm64v8
