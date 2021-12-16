@@ -408,7 +408,6 @@ func downloadSource(uri string) (string, error) {
 }
 
 type reloader struct {
-	lastReload        time.Time
 	minReloadInterval time.Duration
 
 	username string
