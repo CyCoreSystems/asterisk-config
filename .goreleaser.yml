@@ -12,6 +12,8 @@ builds:
         - arm64
 
 archives:
+   - id: image
+     format: binary
    - id: asterisk-config
      format: tar.gz
      name_template: "{{ .Binary }}.{{ .Os }}.{{ .Arch }}"
