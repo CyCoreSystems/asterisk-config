@@ -49,12 +49,12 @@ dockers:
        - "--platform=linux/amd64"
    - image_templates:
       - 'cycoresystems/asterisk-config:{{ .Tag }}-arm64v8'
-      - 'cycoresystems/asterisk-config:{{ .Major }}-arm64v8'
-      - 'cycoresystems/asterisk-config:{{ .Major }}.{{ .Minor }}-arm64v8'
+      - 'cycoresystems/asterisk-config:v{{ .Major }}-arm64v8'
+      - 'cycoresystems/asterisk-config:v{{ .Major }}.{{ .Minor }}-arm64v8'
       - 'cycoresystems/asterisk-config:latest-arm64v8'
       - 'ghcr.io/cycoresystems/asterisk-config:{{ .Tag }}-arm64v8'
-      - 'ghcr.io/cycoresystems/asterisk-config:{{ .Major }}-arm64v8'
-      - 'ghcr.io/cycoresystems/asterisk-config:{{ .Major }}.{{ .Minor }}-arm64v8'
+      - 'ghcr.io/cycoresystems/asterisk-config:v{{ .Major }}-arm64v8'
+      - 'ghcr.io/cycoresystems/asterisk-config:v{{ .Major }}.{{ .Minor }}-arm64v8'
       - 'ghcr.io/cycoresystems/asterisk-config:latest-arm64v8'
      use: buildx
      goos: linux
