@@ -47,6 +47,8 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/CyCoreSystems/kubetemplate v0.2.0 h1:WwYrXs4uvxKgnMkRmabEiu9P1CAHnEbBryRkP9s2j8c=
 github.com/CyCoreSystems/kubetemplate v0.2.0/go.mod h1:m2VBe5jGbXGnSOCaAdCiwSAZ1IJbT/GPpNQPNJCKuHM=
+github.com/CyCoreSystems/kubetemplate v0.6.0-rc1 h1:AUkKHwYW4bIeLVxxyava0y9FTOtZ3/sbofHxATMwXBU=
+github.com/CyCoreSystems/kubetemplate v0.6.0-rc1/go.mod h1:6N6GpbDmvgwmS3j/fBeSD8pCC05y++JOG4sIEI2cLIU=
 github.com/CyCoreSystems/netdiscover v1.2.4 h1:/9e1KlFkn5LPUMXEwDbkVfXqMJrgCWbiiXkt7GEItFs=
 github.com/CyCoreSystems/netdiscover v1.2.4/go.mod h1:RN7msKC9tTuYeqyMPJSEOzVUruw6xYgisO4XJ25hjFw=
 github.com/NYTimes/gziphandler v0.0.0-20170623195520-56545f4a5d46/go.mod h1:3wb06e3pkSAbeQ52E9H9iFoQsEEwGN64994WTCIhntQ=

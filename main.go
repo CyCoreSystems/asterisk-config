@@ -19,6 +19,9 @@ import (
 	"github.com/CyCoreSystems/kubetemplate"
 	"github.com/CyCoreSystems/netdiscover/discover"
 	"github.com/pkg/errors"
+	"github.com/rotisserie/eris"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 const ariUsername = "k8s-asterisk-config"
@@ -51,7 +54,7 @@ type Service struct {
 	Modules string
 
 	// engine is the template rendering and monitoring engine
-	engine *kubetemplate.Engine
+	engine kubetemplate.Engine
 }
 
 // nolint: gocyclo
@@ -145,52 +148,77 @@ func (s *Service) Run() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	renderChan := make(chan error, 1)
-
 	r := newReloader(ctx, ariUsername, s.Secret, s.Modules)
 
-	s.engine = kubetemplate.NewEngine(renderChan, s.Discoverer)
-	defer s.engine.Close()
-
-	// Export defaults
-	if err := s.renderDefaults(); err != nil {
-		return errors.Wrap(err, "failed to render defaults")
+	kconfig, err := rest.InClusterConfig()
+	if err != nil {
+		return fmt.Errorf("failed to create in-cluster Kubernetes config: %w", err)
 	}
 
-	// Execute the first render
-	if err := s.renderCustom(); err != nil {
-		return errors.Wrap(err, "failed to render initial configuration")
+	kc, err := kubernetes.NewForConfig(kconfig)
+	if err != nil {
+		return eris.Wrap(err, "failed to create Kubernetes client")
+	}
+
+	s.engine, err = kubetemplate.NewEngine(kc, s.Discoverer, 10*time.Minute)
+	if err != nil {
+		return eris.Wrap(err, "failed to create templating engine")
+	}
+
+	defer s.engine.Close()
+
+	// Learn the templates first
+	if err := s.learnTemplates(); err != nil {
+		return eris.Wrap(err, "failed to learn defaults")
+	}
+
+	// Execute first template render
+	if err := s.renderTemplates(); err != nil {
+		return eris.Wrap(err, "failed to render configuration")
 	}
 
 	// Write out render flag file to signal completion
 	if err := ioutil.WriteFile(path.Join(s.ExportRoot, renderFlagFilename), []byte("complete"), 0666); err != nil {
-		return errors.Wrap(err, "failed to write render flag file")
+		return eris.Wrap(err, "failed to write render flag file")
 	}
 
 	r.Reload()
 
-	s.engine.FirstRenderComplete(true)
+	for ctx.Err() == nil {
+		s.engine.Wait(ctx)
 
-	for {
-		if err := <-renderChan; err != nil {
-			return errors.Wrap(err, "failure during watch")
-		}
 		log.Println("change detected")
 
-		if err := s.renderCustom(); err != nil {
-			return errors.Wrap(err, "failed to render configuration")
+		if err := s.renderTemplates(); err != nil {
+			return eris.Wrap(err, "failed to render configuration")
 		}
 
 		r.Reload()
 	}
+
+	return ctx.Err()
 }
 
-func (s *Service) renderDefaults() error {
-	return render(s.engine, s.DefaultsRoot, s.ExportRoot)
+func (s *Service) learnTemplates() error {
+	if err := render(s.engine, true, s.DefaultsRoot, s.ExportRoot); err != nil {
+		return eris.Wrap(err, "failed to learn defaults")
+	}
+	if err := render(s.engine, true, s.DefaultsRoot, s.ExportRoot); err != nil {
+		return eris.Wrap(err, "failed to learn templates")
+	}
+
+	return nil
 }
 
-func (s *Service) renderCustom() error {
-	return render(s.engine, s.CustomRoot, s.ExportRoot)
+func (s *Service) renderTemplates() error {
+	if err := render(s.engine, false, s.DefaultsRoot, s.ExportRoot); err != nil {
+		return eris.Wrap(err, "failed to render defaults")
+	}
+	if err := render(s.engine, false, s.DefaultsRoot, s.ExportRoot); err != nil {
+		return eris.Wrap(err, "failed to render templates")
+	}
+
+	return nil
 }
 
 func getDiscoverer(cloud string) discover.Discoverer {
@@ -225,17 +253,17 @@ func getOrCreateSecret(exportRoot string) (string, error) {
 	}
 
 	if err := ioutil.WriteFile(secretPath, []byte(secret), 0600); err != nil {
-		return "", errors.Wrap(err, "failed to write secret to file")
+		return "", eris.Wrap(err, "failed to write secret to file")
 	}
 	return secret, nil
 }
 
-func render(e *kubetemplate.Engine, customRoot string, exportRoot string) error {
+func render(e kubetemplate.Engine, learn bool, customRoot string, exportRoot string) error {
 	var fileCount int
 
 	err := filepath.Walk(customRoot, func(fn string, info os.FileInfo, err error) error {
 		if err != nil {
-			return errors.Wrapf(err, "failed to access file %s", fn)
+			return eris.Wrapf(err, "failed to access file %s", fn)
 		}
 
 		isTemplate := path.Ext(fn) == ".tmpl"
@@ -249,24 +277,27 @@ func render(e *kubetemplate.Engine, customRoot string, exportRoot string) error 
 			return os.MkdirAll(outFile, os.ModePerm)
 		}
 		if err = os.MkdirAll(path.Dir(outFile), os.ModePerm); err != nil {
-			return errors.Wrapf(err, "failed to create destination directory %s", path.Dir(outFile))
+			return eris.Wrapf(err, "failed to create destination directory %s", path.Dir(outFile))
 		}
 		fileCount++
 
 		out, err := os.Create(outFile)
 		if err != nil {
-			return errors.Wrapf(err, "failed to open file for writing: %s", outFile)
+			return eris.Wrapf(err, "failed to open file for writing: %s", outFile)
 		}
 		defer out.Close() // nolint: errcheck
 
 		in, err := os.Open(fn) // nolint: gosec
 		if err != nil {
-			return errors.Wrapf(err, "failed to open template for reading: %s", fn)
+			return eris.Wrapf(err, "failed to open template for reading: %s", fn)
 		}
 		defer in.Close() // nolint: errcheck
 
 		if isTemplate {
-			return kubetemplate.Render(e, in, out)
+			if learn {
+				return e.Learn(in, os.Getenv("POD_NAMESPACE"))
+			}
+			return e.Render(out, in, os.Getenv("POD_NAMESPACE"))
 		}
 
 		_, err = io.Copy(out, in)
@@ -286,7 +317,7 @@ func render(e *kubetemplate.Engine, customRoot string, exportRoot string) error 
 func waitAsterisk(username, secret string) error {
 	r, err := http.NewRequest("GET", "http://127.0.0.1:8088/ari/asterisk/variable?variable=ASTERISK_CONFIG_SYSTEM_READY", nil)
 	if err != nil {
-		return errors.Wrap(err, "failed to construct ping request")
+		return eris.Wrap(err, "failed to construct ping request")
 	}
 	r.Header.Set("Content-Type", "application/json")
 	r.SetBasicAuth(username, secret)
@@ -324,13 +355,13 @@ func extractSource(source, customRoot string) (err error) {
 	if strings.HasPrefix(source, "http") {
 		source, err = downloadSource(source)
 		if err != nil {
-			return errors.Wrap(err, "failed to download source")
+			return eris.Wrap(err, "failed to download source")
 		}
 	}
 
 	r, err := zip.OpenReader(source)
 	if err != nil {
-		return errors.Wrap(err, "failed to open source archive")
+		return eris.Wrap(err, "failed to open source archive")
 	}
 	defer r.Close() // nolint: errcheck
 
@@ -338,31 +369,31 @@ func extractSource(source, customRoot string) (err error) {
 
 		in, err := f.Open()
 		if err != nil {
-			return errors.Wrapf(err, "failed to read file %s", f.Name)
+			return eris.Wrapf(err, "failed to read file %s", f.Name)
 		}
 		defer in.Close() // nolint: errcheck
 
 		dest := path.Join(customRoot, f.Name)
 		if f.FileInfo().IsDir() {
 			if err = os.MkdirAll(dest, os.ModePerm); err != nil {
-				return errors.Wrapf(err, "failed to create destination directory %s", f.Name)
+				return eris.Wrapf(err, "failed to create destination directory %s", f.Name)
 			}
 			continue
 		}
 
 		if err = os.MkdirAll(path.Dir(dest), os.ModePerm); err != nil {
-			return errors.Wrapf(err, "failed to create destination directory %s", path.Dir(dest))
+			return eris.Wrapf(err, "failed to create destination directory %s", path.Dir(dest))
 		}
 
 		out, err := os.Create(dest)
 		if err != nil {
-			return errors.Wrapf(err, "failed to create file %s", dest)
+			return eris.Wrapf(err, "failed to create file %s", dest)
 		}
 
 		_, err = io.Copy(out, in)
 		out.Close() // nolint
 		if err != nil {
-			return errors.Wrapf(err, "error writing file %s", dest)
+			return eris.Wrapf(err, "error writing file %s", dest)
 		}
 
 	}
@@ -373,7 +404,7 @@ func extractSource(source, customRoot string) (err error) {
 func downloadSource(uri string) (string, error) {
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to construct web request to %s", uri)
+		return "", eris.Wrapf(err, "failed to construct web request to %s", uri)
 	}
 
 	if os.Getenv("URL_USERNAME") != "" {
@@ -398,7 +429,7 @@ func downloadSource(uri string) (string, error) {
 
 	tf, err := ioutil.TempFile("", "config-download")
 	if err != nil {
-		return "", errors.Wrap(err, "failed to create temporary file for download")
+		return "", eris.Wrap(err, "failed to create temporary file for download")
 	}
 	defer tf.Close() // nolint: errcheck
 
@@ -495,14 +526,14 @@ func (r *reloader) reloadModule(name string) error {
 
 	req, err := http.NewRequest("PUT", url, nil)
 	if err != nil {
-		return errors.Wrapf(err, "failed to construct module reload request for module %s", name)
+		return eris.Wrapf(err, "failed to construct module reload request for module %s", name)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.SetBasicAuth(r.username, r.secret)
 
 	ret, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return errors.Wrapf(err, "failed to contact ARI to reload module %s", name)
+		return eris.Wrapf(err, "failed to contact ARI to reload module %s", name)
 	}
 	ret.Body.Close() // nolint
 
