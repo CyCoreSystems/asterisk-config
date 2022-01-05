@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -18,7 +19,6 @@ import (
 
 	"github.com/CyCoreSystems/kubetemplate"
 	"github.com/CyCoreSystems/netdiscover/discover"
-	"github.com/pkg/errors"
 	"github.com/rotisserie/eris"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -421,7 +421,7 @@ func downloadSource(uri string) (string, error) {
 	defer resp.Body.Close() // nolint: errcheck
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return "", errors.Errorf("request failed: %s", resp.Status)
+		return "", fmt.Errorf("request failed: %s", resp.Status)
 	}
 	if resp.ContentLength < 1 {
 		return "", errors.New("empty response")
@@ -541,12 +541,12 @@ func (r *reloader) reloadModule(name string) error {
 	case http.StatusNoContent:
 		return nil
 	case http.StatusNotFound:
-		return errors.Errorf("module %s not already loaded", name)
+		return fmt.Errorf("module %s not already loaded", name)
 	case http.StatusUnauthorized:
-		return errors.Errorf("module %s failed to reload due bad authentication", name)
+		return fmt.Errorf("module %s failed to reload due bad authentication", name)
 	case 409:
-		return errors.Errorf("module %s could not be reloaded", name)
+		return fmt.Errorf("module %s could not be reloaded", name)
 	default:
-		return errors.Errorf("module %s reload failed: %s", name, ret.Status)
+		return fmt.Errorf("module %s reload failed: %s", name, ret.Status)
 	}
 }
