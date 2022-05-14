@@ -200,10 +200,12 @@ func (s *Service) Run() error {
 }
 
 func (s *Service) learnTemplates() error {
+	//Render Defaults
 	if err := render(s.engine, true, s.DefaultsRoot, s.ExportRoot); err != nil {
 		return eris.Wrap(err, "failed to learn defaults")
 	}
-	if err := render(s.engine, true, s.DefaultsRoot, s.ExportRoot); err != nil {
+	// Render Custom
+	if err := render(s.engine, true, s.CustomRoot, s.ExportRoot); err != nil {
 		return eris.Wrap(err, "failed to learn templates")
 	}
 
@@ -211,10 +213,12 @@ func (s *Service) learnTemplates() error {
 }
 
 func (s *Service) renderTemplates() error {
+	//Render Defaults
 	if err := render(s.engine, false, s.DefaultsRoot, s.ExportRoot); err != nil {
 		return eris.Wrap(err, "failed to render defaults")
 	}
-	if err := render(s.engine, false, s.DefaultsRoot, s.ExportRoot); err != nil {
+	//Render Custom
+	if err := render(s.engine, false, s.CustomRoot, s.ExportRoot); err != nil {
 		return eris.Wrap(err, "failed to render templates")
 	}
 
