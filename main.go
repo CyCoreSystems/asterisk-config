@@ -203,7 +203,7 @@ func (s *Service) learnTemplates() error {
 	if err := render(s.engine, true, s.DefaultsRoot, s.ExportRoot); err != nil {
 		return eris.Wrap(err, "failed to learn defaults")
 	}
-	if err := render(s.engine, true, s.DefaultsRoot, s.ExportRoot); err != nil {
+	if err := render(s.engine, true, s.CustomRoot, s.ExportRoot); err != nil {
 		return eris.Wrap(err, "failed to learn templates")
 	}
 
@@ -214,7 +214,7 @@ func (s *Service) renderTemplates() error {
 	if err := render(s.engine, false, s.DefaultsRoot, s.ExportRoot); err != nil {
 		return eris.Wrap(err, "failed to render defaults")
 	}
-	if err := render(s.engine, false, s.DefaultsRoot, s.ExportRoot); err != nil {
+	if err := render(s.engine, false, s.CustomRoot, s.ExportRoot); err != nil {
 		return eris.Wrap(err, "failed to render templates")
 	}
 
